@@ -89,9 +89,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>Framework\Win32;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies />
+      <AdditionalDependencies>winmm.lib;libs\win32\OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -120,9 +121,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="framework\Win32\aldlist.cpp" />
+    <ClCompile Include="framework\Win32\CWaves.cpp" />
+    <ClCompile Include="framework\Win32\Framework.cpp" />
+    <ClCompile Include="framework\Win32\LoadOAL.cpp" />
     <ClCompile Include="MyForm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="framework\Win32\aldlist.h" />
+    <ClInclude Include="framework\Win32\CWaves.h" />
+    <ClInclude Include="framework\Win32\Framework.h" />
+    <ClInclude Include="framework\Win32\LoadOAL.h" />
     <ClInclude Include="MyForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
