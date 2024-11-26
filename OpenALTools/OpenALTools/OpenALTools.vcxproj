@@ -93,6 +93,8 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>winmm.lib;libs\win32\OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>Main</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
