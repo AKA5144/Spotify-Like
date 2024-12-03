@@ -9,4 +9,9 @@ void Main(array<String^>^ args) {
 	Application::SetCompatibleTextRenderingDefault(false);
 	OpenALTools::MyForm form;
 	Application::Run(% form);
+
+
 }
+
+
+
