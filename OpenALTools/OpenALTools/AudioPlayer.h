@@ -2,8 +2,10 @@
 
 #include <al.h>
 #include <alc.h>
+#include "CWaves.h"  // Inclure la classe CWaves pour la gestion de fichiers audio
+#include "LoadOAL.h" // Pour les fonctions de gestion OpenAL si nécessaire
 #include <iostream>
-#include <msclr/marshal.h> // Pour `pin_ptr`
+#include <vector>
 
 namespace OpenALTools {
 
@@ -12,9 +14,10 @@ namespace OpenALTools {
         ALuint source;  // Variable pour la source
         ALuint buffer;  // Variable pour le tampon
         bool isPlaying;
+        CWaves* waveHandler; // Pointeur vers l'instance de CWaves
 
     public:
-        AudioPlayer() : source(0), buffer(0), isPlaying(false) {
+        AudioPlayer() : source(0), buffer(0), isPlaying(false), waveHandler(nullptr) {
             // Initialisation de OpenAL
             ALCdevice* device = alcOpenDevice(nullptr);
             if (!device) {
@@ -28,45 +31,106 @@ namespace OpenALTools {
             }
             std::cout << "OpenAL initialisé avec succès." << std::endl;
 
-            // Utilisation de pin_ptr pour s'assurer que les variables source et buffer sont manipulées comme des pointeurs natifs
-            pin_ptr<ALuint> sourcePtr = &source;
-            pin_ptr<ALuint> bufferPtr = &buffer;
+            // Utilisation de pin_ptr pour s'assurer que la mémoire n'est pas déplacée par le GC
+            pin_ptr<ALuint> pSource = &source;
+            pin_ptr<ALuint> pBuffer = &buffer;
 
             // Génération de la source et du tampon
-            alGenSources(1, sourcePtr);
+            alGenSources(1, pSource);
             if (alGetError() != AL_NO_ERROR) {
                 std::cerr << "Erreur lors de la génération de la source." << std::endl;
             }
 
-            alGenBuffers(1, bufferPtr);
+            alGenBuffers(1, pBuffer);
             if (alGetError() != AL_NO_ERROR) {
                 std::cerr << "Erreur lors de la génération du tampon." << std::endl;
             }
+
+            // Initialisation de la classe CWaves
+            waveHandler = new CWaves();
         }
 
         ~AudioPlayer() {
             // Libération des ressources audio
             if (source != 0) {
-                // Utilisation de pin_ptr pour s'assurer que `source` est traité comme un pointeur natif
-                pin_ptr<ALuint> sourcePtr = &source;
-                alDeleteSources(1, sourcePtr);
+                pin_ptr<ALuint> pSource = &source;
+                alDeleteSources(1, pSource);
             }
             if (buffer != 0) {
-                // Utilisation de pin_ptr pour s'assurer que `buffer` est traité comme un pointeur natif
-                pin_ptr<ALuint> bufferPtr = &buffer;
-                alDeleteBuffers(1, bufferPtr);
+                pin_ptr<ALuint> pBuffer = &buffer;
+                alDeleteBuffers(1, pBuffer);
+            }
+            if (waveHandler) {
+                delete waveHandler;
             }
             std::cout << "Ressources audio libérées." << std::endl;
         }
 
         void LoadAudio(const std::string& filePath) {
-            // Exemple de code pour charger des données audio
+            // Charger le fichier audio
+            WAVEID waveID;
+            WAVERESULT result = waveHandler->LoadWaveFile(filePath.c_str(), &waveID);
+            if (result != WR_OK) {
+                std::cerr << "Erreur lors du chargement du fichier audio : " << filePath << std::endl;
+                return;
+            }
+
+            // Obtenir les informations nécessaires sur l'audio
+            WAVEFORMATEX waveFormat;
+            result = waveHandler->GetWaveFormatExHeader(waveID, &waveFormat);
+            if (result != WR_OK) {
+                std::cerr << "Erreur lors de l'obtention des informations de format de l'audio." << std::endl;
+                return;
+            }
+
+            // Lire les données de l'audio
+            ALsizei size = waveFormat.nAvgBytesPerSec; // Exemple d'utilisation
+            ALsizei freq = waveFormat.nSamplesPerSec;
+            ALenum format;
+
+            // Déterminer le format pour OpenAL
+            if (waveFormat.nChannels == 1) {
+                format = (waveFormat.wBitsPerSample == 8) ? AL_FORMAT_MONO8 : AL_FORMAT_MONO16;
+            }
+            else {
+                format = (waveFormat.wBitsPerSample == 8) ? AL_FORMAT_STEREO8 : AL_FORMAT_STEREO16;
+            }
+
+            // Lire les données dans un tampon
+            char* data = new char[size]; // Allocation mémoire pour les données
+            unsigned long bytesRead;
+            result = waveHandler->ReadWaveData(waveID, data, size, &bytesRead);
+            if (result != WR_OK || bytesRead != size) {
+                std::cerr << "Erreur lors de la lecture des données audio." << std::endl;
+                delete[] data;
+                return;
+            }
+
+            // Charger les données dans le tampon OpenAL
+            alBufferData(buffer, format, data, bytesRead, freq);
+            if (alGetError() != AL_NO_ERROR) {
+                std::cerr << "Erreur lors du chargement des données audio dans le tampon." << std::endl;
+                delete[] data;
+                return;
+            }
+
+            // Libérer la mémoire après le chargement
+            delete[] data;
+
+            // Attacher le tampon à la source
             alSourcei(source, AL_BUFFER, buffer);
+            if (alGetError() != AL_NO_ERROR) {
+                std::cerr << "Erreur lors de l'attachement du tampon à la source." << std::endl;
+                return;
+            }
+
+            std::cout << "Chargement de l'audio réussi." << std::endl;
         }
 
         void Play() {
             if (!isPlaying) {
-                alSourcePlay(source);
+                pin_ptr<ALuint> pSource = &source;
+                alSourcePlay(*pSource);
                 if (alGetError() != AL_NO_ERROR) {
                     std::cerr << "Erreur lors de la lecture de la source." << std::endl;
                 }
@@ -82,7 +146,8 @@ namespace OpenALTools {
 
         void Pause() {
             if (isPlaying) {
-                alSourcePause(source);
+                pin_ptr<ALuint> pSource = &source;
+                alSourcePause(*pSource);
                 if (alGetError() != AL_NO_ERROR) {
                     std::cerr << "Erreur lors de la pause de la source." << std::endl;
                 }
@@ -98,7 +163,8 @@ namespace OpenALTools {
 
         void Stop() {
             if (isPlaying) {
-                alSourceStop(source);
+                pin_ptr<ALuint> pSource = &source;
+                alSourceStop(*pSource);
                 if (alGetError() != AL_NO_ERROR) {
                     std::cerr << "Erreur lors de l'arrêt de la source." << std::endl;
                 }

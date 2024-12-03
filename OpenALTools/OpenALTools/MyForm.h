@@ -1,5 +1,6 @@
 #pragma once
-
+#include "AudioPlayer.cpp"
+#include <msclr/marshal_cppstd.h>
 namespace OpenALTools {
 
 	using namespace System;
@@ -18,7 +19,7 @@ namespace OpenALTools {
 		MyForm(void)
 		{
 			InitializeComponent();
-			//
+			audioPlayer = gcnew OpenALTools::AudioPlayer();
 			//TODO: ajoutez ici le code du constructeur
 			//
 		}
@@ -34,11 +35,13 @@ namespace OpenALTools {
 				delete components;
 			}
 		}
+	private: OpenALTools::AudioPlayer^ audioPlayer;
 	private: System::Windows::Forms::Button^ playButton;
 	private: System::Windows::Forms::TrackBar^ trackBar1;
 	private: System::Windows::Forms::Label^ label1;
 	private: System::Windows::Forms::ProgressBar^ timelineBar;
-	private: System::Windows::Forms::Button^ button1;
+	private: System::Windows::Forms::Button^ importButton;
+
 	private: System::Windows::Forms::OpenFileDialog^ openFileDialog1;
 	private: System::Windows::Forms::SaveFileDialog^ saveFileDialog1;
 	private: System::Windows::Forms::Button^ button2;
@@ -66,7 +69,7 @@ namespace OpenALTools {
 			this->trackBar1 = (gcnew System::Windows::Forms::TrackBar());
 			this->label1 = (gcnew System::Windows::Forms::Label());
 			this->timelineBar = (gcnew System::Windows::Forms::ProgressBar());
-			this->button1 = (gcnew System::Windows::Forms::Button());
+			this->importButton = (gcnew System::Windows::Forms::Button());
 			this->openFileDialog1 = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveFileDialog1 = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->button2 = (gcnew System::Windows::Forms::Button());
@@ -84,7 +87,6 @@ namespace OpenALTools {
 			this->playButton->Text = L"Play";
 			this->playButton->UseVisualStyleBackColor = true;
 			this->playButton->Click += gcnew System::EventHandler(this, &MyForm::playButtonClick);
-
 			// 
 			// trackBar1
 			// 
@@ -111,20 +113,20 @@ namespace OpenALTools {
 			this->timelineBar->TabIndex = 3;
 			this->timelineBar->Click += gcnew System::EventHandler(this, &MyForm::timelineBar_Click);
 			// 
-			// button1
+			// importButton
 			// 
-			this->button1->Location = System::Drawing::Point(24, 13);
-			this->button1->Name = L"button1";
-			this->button1->Size = System::Drawing::Size(120, 23);
-			this->button1->TabIndex = 4;
-			this->button1->Text = L"Import music. . .";
-			this->button1->UseVisualStyleBackColor = true;
-			this->button1->Click += gcnew System::EventHandler(this, &MyForm::button1_Click);
+			this->importButton->Location = System::Drawing::Point(24, 13);
+			this->importButton->Name = L"importButton";
+			this->importButton->Size = System::Drawing::Size(120, 23);
+			this->importButton->TabIndex = 4;
+			this->importButton->Text = L"Import music. . .";
+			this->importButton->UseVisualStyleBackColor = true;
+			this->importButton->Click += gcnew System::EventHandler(this, &MyForm::import_Click);
 			// 
 			// openFileDialog1
 			// 
 			this->openFileDialog1->FileName = L"openFileDialog1";
-			this->openFileDialog1->Filter = L"\"Audio Files|*.ogg;*.wav\"";
+			//this->openFileDialog1->Filter = L"\"Audio Files|*.ogg;*.wav\"";
 			this->openFileDialog1->FileOk += gcnew System::ComponentModel::CancelEventHandler(this, &MyForm::openFileDialog1_FileOk);
 			// 
 			// button2
@@ -146,7 +148,6 @@ namespace OpenALTools {
 			this->pauseButton->Text = L"Pause";
 			this->pauseButton->UseVisualStyleBackColor = true;
 			this->pauseButton->Click += gcnew System::EventHandler(this, &MyForm::pauseButtonClick);
-
 			// 
 			// stopButton
 			// 
@@ -167,7 +168,7 @@ namespace OpenALTools {
 			this->Controls->Add(this->stopButton);
 			this->Controls->Add(this->pauseButton);
 			this->Controls->Add(this->button2);
-			this->Controls->Add(this->button1);
+			this->Controls->Add(this->importButton);
 			this->Controls->Add(this->timelineBar);
 			this->Controls->Add(this->label1);
 			this->Controls->Add(this->trackBar1);
@@ -184,9 +185,18 @@ namespace OpenALTools {
 	private: System::Void openFileDialog1_FileOk(System::Object^ sender, System::ComponentModel::CancelEventArgs^ e) {
 	}
 
-	private: System::Void button1_Click(System::Object^ sender, System::EventArgs^ e) {
+	private: System::Void import_Click(System::Object^ sender, System::EventArgs^ e) {
 
-		openFileDialog1->ShowDialog();
+		if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+			// Obtenir le chemin du fichier sélectionné
+			String^ filePath = openFileDialog1->FileName;
+
+			// Convertir System::String^ en std::string
+			std::string nativeFilePath = msclr::interop::marshal_as<std::string>(filePath);
+
+			// Appeler la méthode LoadAudio de AudioPlayer
+			audioPlayer->LoadAudio(nativeFilePath);
+		}
 
 	}
 private: System::Void button2_Click(System::Object^ sender, System::EventArgs^ e) {
