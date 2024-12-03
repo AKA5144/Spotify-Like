@@ -47,6 +47,7 @@ namespace OpenALTools {
 	private: System::Windows::Forms::Button^ button2;
 	private: System::Windows::Forms::Button^ pauseButton;
 	private: System::Windows::Forms::Button^ stopButton;
+	private: System::Windows::Forms::ListBox^ listBox1;
 
 	protected:
 
@@ -75,6 +76,7 @@ namespace OpenALTools {
 			this->button2 = (gcnew System::Windows::Forms::Button());
 			this->pauseButton = (gcnew System::Windows::Forms::Button());
 			this->stopButton = (gcnew System::Windows::Forms::Button());
+			this->listBox1 = (gcnew System::Windows::Forms::ListBox());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->trackBar1))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -126,7 +128,7 @@ namespace OpenALTools {
 			// openFileDialog1
 			// 
 			this->openFileDialog1->FileName = L"openFileDialog1";
-			//this->openFileDialog1->Filter = L"\"Audio Files|*.ogg;*.wav\"";
+			this->openFileDialog1->Filter = "Audio Files|*.wav;*.ogg";
 			this->openFileDialog1->FileOk += gcnew System::ComponentModel::CancelEventHandler(this, &MyForm::openFileDialog1_FileOk);
 			// 
 			// button2
@@ -159,12 +161,22 @@ namespace OpenALTools {
 			this->stopButton->UseVisualStyleBackColor = true;
 			this->stopButton->Click += gcnew System::EventHandler(this, &MyForm::stopButtonClick);
 			// 
+			// listBox1
+			// 
+			this->listBox1->FormattingEnabled = true;
+			this->listBox1->Location = System::Drawing::Point(450, 131);
+			this->listBox1->Name = L"listBox1";
+			this->listBox1->Size = System::Drawing::Size(322, 264);
+			this->listBox1->TabIndex = 8;
+			this->listBox1->SelectedIndexChanged += gcnew System::EventHandler(this, &MyForm::listBox1_SelectedIndexChanged);
+			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->BackColor = System::Drawing::Color::Gray;
 			this->ClientSize = System::Drawing::Size(819, 464);
+			this->Controls->Add(this->listBox1);
 			this->Controls->Add(this->stopButton);
 			this->Controls->Add(this->pauseButton);
 			this->Controls->Add(this->button2);
@@ -185,20 +197,24 @@ namespace OpenALTools {
 	private: System::Void openFileDialog1_FileOk(System::Object^ sender, System::ComponentModel::CancelEventArgs^ e) {
 	}
 
-	private: System::Void import_Click(System::Object^ sender, System::EventArgs^ e) {
+private: System::Void import_Click(System::Object^ sender, System::EventArgs^ e) {
+	if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+		// Obtenir le chemin complet du fichier sélectionné
+		String^ filePath = openFileDialog1->FileName;
 
-		if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
-			// Obtenir le chemin du fichier sélectionné
-			String^ filePath = openFileDialog1->FileName;
+		// Convertir System::String^ en std::string (si nécessaire pour l'audioPlayer)
+		std::string nativeFilePath = msclr::interop::marshal_as<std::string>(filePath);
 
-			// Convertir System::String^ en std::string
-			std::string nativeFilePath = msclr::interop::marshal_as<std::string>(filePath);
+		// Appeler la méthode LoadAudio de AudioPlayer
+		audioPlayer->LoadAudio(nativeFilePath);
+		audioPlayer->Play();
 
-			// Appeler la méthode LoadAudio de AudioPlayer
-			audioPlayer->LoadAudio(nativeFilePath);
-		}
-
+		// Extraire le nom du fichier pour l'afficher dans la ListBox
+		String^ fileName = System::IO::Path::GetFileName(filePath);
+		listBox1->Items->Add(fileName);
 	}
+}
+
 private: System::Void button2_Click(System::Object^ sender, System::EventArgs^ e) {
 		saveFileDialog1->ShowDialog();
 
@@ -212,6 +228,8 @@ private: System::Void pauseButtonClick(System::Object^ sender, System::EventArgs
 private: System::Void playButtonClick(System::Object^ sender, System::EventArgs^ e) {
 }
 private: System::Void MyForm_Load(System::Object^ sender, System::EventArgs^ e) {
+}
+private: System::Void listBox1_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e) {
 }
 };
 }

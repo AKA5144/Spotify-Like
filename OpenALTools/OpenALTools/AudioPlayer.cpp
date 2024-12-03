@@ -75,7 +75,7 @@ namespace OpenALTools {
                 return;
             }
 
-            // Obtenir les informations nécessaires sur l'audio
+            // Obtenir les informations nécessaires sur le format de l'audio
             WAVEFORMATEX waveFormat;
             result = waveHandler->GetWaveFormatExHeader(waveID, &waveFormat);
             if (result != WR_OK) {
@@ -83,31 +83,40 @@ namespace OpenALTools {
                 return;
             }
 
-            // Lire les données de l'audio
-            ALsizei size = waveFormat.nAvgBytesPerSec; // Exemple d'utilisation
-            ALsizei freq = waveFormat.nSamplesPerSec;
-            ALenum format;
-
-            // Déterminer le format pour OpenAL
-            if (waveFormat.nChannels == 1) {
-                format = (waveFormat.wBitsPerSample == 8) ? AL_FORMAT_MONO8 : AL_FORMAT_MONO16;
-            }
-            else {
-                format = (waveFormat.wBitsPerSample == 8) ? AL_FORMAT_STEREO8 : AL_FORMAT_STEREO16;
+            // Lire la taille totale du fichier audio
+            unsigned long fileSize;
+            result = waveHandler->GetWaveSize(waveID, &fileSize);
+            if (result != WR_OK || fileSize == 0) {
+                std::cerr << "Erreur : la taille du fichier audio est nulle ou la récupération a échoué." << std::endl;
+                return;
             }
 
             // Lire les données dans un tampon
-            char* data = new char[size]; // Allocation mémoire pour les données
+            char* data = new char[fileSize]; // Allocation mémoire pour les données
             unsigned long bytesRead;
-            result = waveHandler->ReadWaveData(waveID, data, size, &bytesRead);
-            if (result != WR_OK || bytesRead != size) {
+            result = waveHandler->ReadWaveData(waveID, data, fileSize, &bytesRead);
+            if (result != WR_OK || bytesRead != fileSize) {
                 std::cerr << "Erreur lors de la lecture des données audio." << std::endl;
                 delete[] data;
                 return;
             }
 
+            // Déterminer le format pour OpenAL
+            ALenum format;
+            if (waveFormat.nChannels == 1) {
+                format = (waveFormat.wBitsPerSample == 8) ? AL_FORMAT_MONO8 : AL_FORMAT_MONO16;
+            }
+            else if (waveFormat.nChannels == 2) {
+                format = (waveFormat.wBitsPerSample == 8) ? AL_FORMAT_STEREO8 : AL_FORMAT_STEREO16;
+            }
+            else {
+                std::cerr << "Format audio non supporté." << std::endl;
+                delete[] data;
+                return;
+            }
+
             // Charger les données dans le tampon OpenAL
-            alBufferData(buffer, format, data, bytesRead, freq);
+            alBufferData(buffer, format, data, bytesRead, waveFormat.nSamplesPerSec);
             if (alGetError() != AL_NO_ERROR) {
                 std::cerr << "Erreur lors du chargement des données audio dans le tampon." << std::endl;
                 delete[] data;
@@ -126,6 +135,8 @@ namespace OpenALTools {
 
             std::cout << "Chargement de l'audio réussi." << std::endl;
         }
+
+
         void Play() {
             if (!isPlaying) {
                 if (buffer == 0) {
