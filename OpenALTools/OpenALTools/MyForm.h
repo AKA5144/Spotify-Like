@@ -1,5 +1,9 @@
 #pragma once
-#include "AudioPlayer.cpp"
+#include "AudioPlayer.h"
+#include <vector>
+#include <array>
+using namespace System::IO;
+
 #include <msclr/marshal_cppstd.h>
 namespace OpenALTools {
 
@@ -19,7 +23,9 @@ namespace OpenALTools {
 		MyForm(void)
 		{
 			InitializeComponent();
-			audioPlayer = gcnew OpenALTools::AudioPlayer();
+			audioPlayer = new OpenALTools::AudioPlayer();
+
+
 			//TODO: ajoutez ici le code du constructeur
 			//
 		}
@@ -35,7 +41,9 @@ namespace OpenALTools {
 				delete components;
 			}
 		}
-	private: OpenALTools::AudioPlayer^ audioPlayer;
+	private: OpenALTools::AudioPlayer* audioPlayer;
+		   System::Collections::Generic::List<String^>^ Playlist = gcnew System::Collections::Generic::List<String^>();
+
 	private: System::Windows::Forms::Button^ playButton;
 	private: System::Windows::Forms::TrackBar^ trackBar1;
 	private: System::Windows::Forms::Label^ label1;
@@ -47,7 +55,9 @@ namespace OpenALTools {
 	private: System::Windows::Forms::Button^ button2;
 	private: System::Windows::Forms::Button^ pauseButton;
 	private: System::Windows::Forms::Button^ stopButton;
-	private: System::Windows::Forms::ListBox^ listBox1;
+	private: System::Windows::Forms::RichTextBox^ richTextBox1;
+		   int currentTrack = 0;
+
 
 	protected:
 
@@ -76,7 +86,7 @@ namespace OpenALTools {
 			this->button2 = (gcnew System::Windows::Forms::Button());
 			this->pauseButton = (gcnew System::Windows::Forms::Button());
 			this->stopButton = (gcnew System::Windows::Forms::Button());
-			this->listBox1 = (gcnew System::Windows::Forms::ListBox());
+			this->richTextBox1 = (gcnew System::Windows::Forms::RichTextBox());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->trackBar1))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -128,7 +138,7 @@ namespace OpenALTools {
 			// openFileDialog1
 			// 
 			this->openFileDialog1->FileName = L"openFileDialog1";
-			this->openFileDialog1->Filter = "Audio Files|*.wav;*.ogg";
+			this->openFileDialog1->Filter = L"Audio Files|*.wav;*.ogg";
 			this->openFileDialog1->FileOk += gcnew System::ComponentModel::CancelEventHandler(this, &MyForm::openFileDialog1_FileOk);
 			// 
 			// button2
@@ -161,14 +171,13 @@ namespace OpenALTools {
 			this->stopButton->UseVisualStyleBackColor = true;
 			this->stopButton->Click += gcnew System::EventHandler(this, &MyForm::stopButtonClick);
 			// 
-			// listBox1
+			// richTextBox1
 			// 
-			this->listBox1->FormattingEnabled = true;
-			this->listBox1->Location = System::Drawing::Point(450, 131);
-			this->listBox1->Name = L"listBox1";
-			this->listBox1->Size = System::Drawing::Size(322, 264);
-			this->listBox1->TabIndex = 8;
-			this->listBox1->SelectedIndexChanged += gcnew System::EventHandler(this, &MyForm::listBox1_SelectedIndexChanged);
+			this->richTextBox1->Location = System::Drawing::Point(456, 87);
+			this->richTextBox1->Name = L"richTextBox1";
+			this->richTextBox1->Size = System::Drawing::Size(259, 281);
+			this->richTextBox1->TabIndex = 9;
+			this->richTextBox1->Text = L"";
 			// 
 			// MyForm
 			// 
@@ -176,7 +185,7 @@ namespace OpenALTools {
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->BackColor = System::Drawing::Color::Gray;
 			this->ClientSize = System::Drawing::Size(819, 464);
-			this->Controls->Add(this->listBox1);
+			this->Controls->Add(this->richTextBox1);
 			this->Controls->Add(this->stopButton);
 			this->Controls->Add(this->pauseButton);
 			this->Controls->Add(this->button2);
@@ -198,21 +207,20 @@ namespace OpenALTools {
 	}
 
 private: System::Void import_Click(System::Object^ sender, System::EventArgs^ e) {
-	if (openFileDialog1->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
-		// Obtenir le chemin complet du fichier sélectionné
-		String^ filePath = openFileDialog1->FileName;
+	OpenFileDialog^ openFileDialog = gcnew OpenFileDialog();
+	openFileDialog->Filter = "Fichiers WAV (*.wav)|*.wav|Fichiers OGG (*.ogg)|*.ogg";
 
-		// Convertir System::String^ en std::string (si nécessaire pour l'audioPlayer)
-		std::string nativeFilePath = msclr::interop::marshal_as<std::string>(filePath);
+	openFileDialog->ShowDialog();
 
-		// Appeler la méthode LoadAudio de AudioPlayer
-		audioPlayer->LoadAudio(nativeFilePath);
-		audioPlayer->Play();
+	String^ filePath = openFileDialog->FileName;
 
-		// Extraire le nom du fichier pour l'afficher dans la ListBox
-		String^ fileName = System::IO::Path::GetFileName(filePath);
-		listBox1->Items->Add(fileName);
-	}
+	int splitSize = filePath->Split('\\')->Length;
+
+	Playlist->Add(filePath);
+
+	label1->Text = filePath->Split('\\')[splitSize - 1];
+
+	richTextBox1->AppendText(label1->Text + "\n");
 }
 
 private: System::Void button2_Click(System::Object^ sender, System::EventArgs^ e) {
@@ -224,6 +232,18 @@ private: System::Void timelineBar_Click(System::Object^ sender, System::EventArg
 private: System::Void stopButtonClick(System::Object^ sender, System::EventArgs^ e) {
 }
 private: System::Void pauseButtonClick(System::Object^ sender, System::EventArgs^ e) {
+	if (Playlist->Count <= 0)
+	{
+		return;
+	}
+	String^ managedString = Playlist[currentTrack];
+	std::string stdString = msclr::interop::marshal_as<std::string>(managedString);
+	const char* word = stdString.c_str();
+
+	if (managedString->Split('.')[managedString->Split('.')->Length - 1] == "wav")
+	{
+		audioPlayer->playAudio(word);
+	}
 }
 private: System::Void playButtonClick(System::Object^ sender, System::EventArgs^ e) {
 }
