@@ -47,7 +47,7 @@ namespace OpenALTools {
 	private: System::Windows::Forms::Button^ playButton;
 	private: System::Windows::Forms::TrackBar^ trackBar1;
 	private: System::Windows::Forms::Label^ label1;
-	private: System::Windows::Forms::ProgressBar^ timelineBar;
+
 	private: System::Windows::Forms::Button^ importButton;
 
 	private: System::Windows::Forms::OpenFileDialog^ openFileDialog1;
@@ -79,7 +79,6 @@ namespace OpenALTools {
 			this->playButton = (gcnew System::Windows::Forms::Button());
 			this->trackBar1 = (gcnew System::Windows::Forms::TrackBar());
 			this->label1 = (gcnew System::Windows::Forms::Label());
-			this->timelineBar = (gcnew System::Windows::Forms::ProgressBar());
 			this->importButton = (gcnew System::Windows::Forms::Button());
 			this->openFileDialog1 = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveFileDialog1 = (gcnew System::Windows::Forms::SaveFileDialog());
@@ -107,6 +106,7 @@ namespace OpenALTools {
 			this->trackBar1->Orientation = System::Windows::Forms::Orientation::Vertical;
 			this->trackBar1->Size = System::Drawing::Size(45, 104);
 			this->trackBar1->TabIndex = 1;
+			this->trackBar1->Scroll += gcnew System::EventHandler(this, &MyForm::trackBar1_Scroll);
 			// 
 			// label1
 			// 
@@ -116,14 +116,6 @@ namespace OpenALTools {
 			this->label1->Size = System::Drawing::Size(48, 13);
 			this->label1->TabIndex = 2;
 			this->label1->Text = L"Volume :";
-			// 
-			// timelineBar
-			// 
-			this->timelineBar->Location = System::Drawing::Point(188, 176);
-			this->timelineBar->Name = L"timelineBar";
-			this->timelineBar->Size = System::Drawing::Size(184, 23);
-			this->timelineBar->TabIndex = 3;
-			this->timelineBar->Click += gcnew System::EventHandler(this, &MyForm::timelineBar_Click);
 			// 
 			// importButton
 			// 
@@ -190,7 +182,6 @@ namespace OpenALTools {
 			this->Controls->Add(this->pauseButton);
 			this->Controls->Add(this->button2);
 			this->Controls->Add(this->importButton);
-			this->Controls->Add(this->timelineBar);
 			this->Controls->Add(this->label1);
 			this->Controls->Add(this->trackBar1);
 			this->Controls->Add(this->playButton);
@@ -230,8 +221,14 @@ private: System::Void button2_Click(System::Object^ sender, System::EventArgs^ e
 private: System::Void timelineBar_Click(System::Object^ sender, System::EventArgs^ e) {
 }
 private: System::Void stopButtonClick(System::Object^ sender, System::EventArgs^ e) {
+	audioPlayer->stopPlayback();
+
 }
 private: System::Void pauseButtonClick(System::Object^ sender, System::EventArgs^ e) {
+	audioPlayer->pausePlayback();
+
+}
+private: System::Void playButtonClick(System::Object^ sender, System::EventArgs^ e) {
 	if (Playlist->Count <= 0)
 	{
 		return;
@@ -245,11 +242,12 @@ private: System::Void pauseButtonClick(System::Object^ sender, System::EventArgs
 		audioPlayer->playAudio(word);
 	}
 }
-private: System::Void playButtonClick(System::Object^ sender, System::EventArgs^ e) {
-}
 private: System::Void MyForm_Load(System::Object^ sender, System::EventArgs^ e) {
 }
 private: System::Void listBox1_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e) {
+}
+private: System::Void trackBar1_Scroll(System::Object^ sender, System::EventArgs^ e) {
+	audioPlayer->setAudioVolume(trackBar1->Value);
 }
 };
 }
