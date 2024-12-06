@@ -57,6 +57,7 @@ namespace OpenALTools {
 	private: System::Windows::Forms::Button^ stopButton;
 	private: System::Windows::Forms::RichTextBox^ richTextBox1;
 		   int currentTrack = 0;
+	private: System::Windows::Forms::Button^ button3;
 
 
 	protected:
@@ -86,6 +87,7 @@ namespace OpenALTools {
 			this->pauseButton = (gcnew System::Windows::Forms::Button());
 			this->stopButton = (gcnew System::Windows::Forms::Button());
 			this->richTextBox1 = (gcnew System::Windows::Forms::RichTextBox());
+			this->button3 = (gcnew System::Windows::Forms::Button());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->trackBar1))->BeginInit();
 			this->SuspendLayout();
 			// 
@@ -102,10 +104,12 @@ namespace OpenALTools {
 			// trackBar1
 			// 
 			this->trackBar1->Location = System::Drawing::Point(99, 152);
+			this->trackBar1->Maximum = 100;
 			this->trackBar1->Name = L"trackBar1";
 			this->trackBar1->Orientation = System::Windows::Forms::Orientation::Vertical;
 			this->trackBar1->Size = System::Drawing::Size(45, 104);
 			this->trackBar1->TabIndex = 1;
+			this->trackBar1->Value = 100;
 			this->trackBar1->Scroll += gcnew System::EventHandler(this, &MyForm::trackBar1_Scroll);
 			// 
 			// label1
@@ -139,7 +143,7 @@ namespace OpenALTools {
 			this->button2->Name = L"button2";
 			this->button2->Size = System::Drawing::Size(126, 23);
 			this->button2->TabIndex = 5;
-			this->button2->Text = L"Save Playlist";
+			this->button2->Text = L"Import Playlist";
 			this->button2->UseVisualStyleBackColor = true;
 			this->button2->Click += gcnew System::EventHandler(this, &MyForm::button2_Click);
 			// 
@@ -171,12 +175,23 @@ namespace OpenALTools {
 			this->richTextBox1->TabIndex = 9;
 			this->richTextBox1->Text = L"";
 			// 
+			// button3
+			// 
+			this->button3->Location = System::Drawing::Point(282, 13);
+			this->button3->Name = L"button3";
+			this->button3->Size = System::Drawing::Size(112, 23);
+			this->button3->TabIndex = 10;
+			this->button3->Text = L"Save Playlist";
+			this->button3->UseVisualStyleBackColor = true;
+			this->button3->Click += gcnew System::EventHandler(this, &MyForm::button3_Click);
+			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->BackColor = System::Drawing::Color::Gray;
 			this->ClientSize = System::Drawing::Size(819, 464);
+			this->Controls->Add(this->button3);
 			this->Controls->Add(this->richTextBox1);
 			this->Controls->Add(this->stopButton);
 			this->Controls->Add(this->pauseButton);
@@ -215,9 +230,49 @@ private: System::Void import_Click(System::Object^ sender, System::EventArgs^ e)
 }
 
 private: System::Void button2_Click(System::Object^ sender, System::EventArgs^ e) {
-		saveFileDialog1->ShowDialog();
+	// Créer une instance de OpenFileDialog
+	OpenFileDialog^ openFileDialog = gcnew OpenFileDialog();
+	openFileDialog->Filter = "Fichiers texte (*.txt)|*.txt"; // Types de fichiers pris en charge
+	openFileDialog->Title = "Importer une playlist";
 
+	// Afficher le dialogue et vérifier si l'utilisateur a sélectionné un fichier
+	if (openFileDialog->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+		String^ filePath = openFileDialog->FileName; // Récupère le chemin complet du fichier sélectionné
+
+		StreamReader^ reader = nullptr; // Déclare le StreamReader en dehors du try
+		try {
+			// Initialisation du StreamReader
+			reader = gcnew StreamReader(filePath);
+
+			// Nettoyer la playlist avant d'importer les nouvelles lignes
+			Playlist->Clear();
+
+			// Lire chaque ligne du fichier et l'ajouter à la playlist
+			String^ line;
+			while ((line = reader->ReadLine()) != nullptr) {
+				Playlist->Add(line);
+				int splitSize = line->Split('\\')->Length;
+				richTextBox1->AppendText(line->Split('\\')[splitSize - 1] + "\n");
+			}
+
+			// Message de confirmation
+			MessageBox::Show("succès  : " + filePath,
+				"réussi", MessageBoxButtons::OK, MessageBoxIcon::Information);
+		}
+		catch (Exception^ ex) {
+			// Gestion des erreurs
+			MessageBox::Show("Erreur : " + ex->Message,
+				"Erreur", MessageBoxButtons::OK, MessageBoxIcon::Error);
+		}
+		finally {
+			// Fermeture explicite du StreamReader
+			if (reader != nullptr) {
+				reader->Close();
+			}
+		}
+	}
 }
+
 private: System::Void timelineBar_Click(System::Object^ sender, System::EventArgs^ e) {
 }
 private: System::Void stopButtonClick(System::Object^ sender, System::EventArgs^ e) {
@@ -249,5 +304,46 @@ private: System::Void listBox1_SelectedIndexChanged(System::Object^ sender, Syst
 private: System::Void trackBar1_Scroll(System::Object^ sender, System::EventArgs^ e) {
 	audioPlayer->setAudioVolume(trackBar1->Value);
 }
+private: System::Void button3_Click(System::Object^ sender, System::EventArgs^ e) {
+	// Créer une instance de SaveFileDialog
+	SaveFileDialog^ saveFileDialog = gcnew SaveFileDialog();
+
+	// Configuration du SaveFileDialog
+	saveFileDialog->Filter = "Fichiers texte (*.txt)|*.txt"; // Types de fichiers pris en charge
+	saveFileDialog->Title = "Enregistrer la playlist";
+	saveFileDialog->FileName = "playlist.txt"; // Nom de fichier par défaut
+
+	// Afficher le dialogue et vérifier si l'utilisateur a sélectionné un fichier
+	if (saveFileDialog->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+		String^ filePath = saveFileDialog->FileName; // Récupère le chemin choisi
+
+		StreamWriter^ writer = nullptr; // Déclare le StreamWriter en dehors du try
+		try {
+			// Initialisation du StreamWriter
+			writer = gcnew StreamWriter(filePath);
+
+			// Écrit chaque ligne de la liste dans le fichier
+			for each (String ^ song in Playlist) {
+				writer->WriteLine(song);
+			}
+
+			// Message de confirmation
+			MessageBox::Show("succès" + filePath,
+				"Exportation réussie", MessageBoxButtons::OK, MessageBoxIcon::Information);
+		}
+		catch (Exception^ ex) {
+			// Gestion des erreurs
+			MessageBox::Show("Erreur" + ex->Message,
+				"Erreur", MessageBoxButtons::OK, MessageBoxIcon::Error);
+		}
+		finally {
+			// Fermeture explicite du StreamWriter
+			if (writer != nullptr) {
+				writer->Close();
+			}
+		}
+	}
+}
+
 };
 }
